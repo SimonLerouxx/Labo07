@@ -14,18 +14,29 @@ from handlers.user_deleted_handler import UserDeletedHandler
 logger = Logger.get_instance("Coolriel")
 
 def main():
-    """Main entry point for the Coolriel service"""
+    """Main entry point for the Coolriel service."""
     registry = HandlerRegistry()
     registry.register(UserCreatedHandler(output_dir=config.OUTPUT_DIR))
     registry.register(UserDeletedHandler(output_dir=config.OUTPUT_DIR))
 
-    # NOTE: le consommateur peut écouter 1 ou plusieurs topics (str or array)
+    consumer_service_history = UserEventHistoryConsumer(
+        bootstrap_servers=config.KAFKA_HOST,
+        topic=config.KAFKA_TOPIC,
+        group_id=f"{config.KAFKA_GROUP_ID}-history-v2",
+        registry=registry
+    )
+
+    logger.info("Lecture de l'historique des événements Kafka")
+    consumer_service_history.start()
+
     consumer_service = UserEventConsumer(
         bootstrap_servers=config.KAFKA_HOST,
         topic=config.KAFKA_TOPIC,
         group_id=config.KAFKA_GROUP_ID,
-        registry=registry,
+        registry=registry
     )
+
+    logger.info("Démarrage du consommateur principal")
     consumer_service.start()
 
 if __name__ == "__main__":
